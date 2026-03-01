@@ -2,7 +2,8 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const port = 3042;
-
+ const { secp256k1 } = require("ethereum-cryptography/secp256k1");
+  const { toHex, hexToBytes } = require("ethereum-cryptography/utils");
 app.use(cors());
 app.use(express.json());
 
@@ -24,10 +25,12 @@ app.post("/send", (req, res) => {
   const { recipient, amount, signature, recovery, messageHash } = req.body;
   console.log("Received send request:", req.body);
 
-  const { secp256k1 } = require("ethereum-cryptography/secp256k1");
-  const { toHex } = require("ethereum-cryptography/utils");
 
   try {
+    const message=JSON.stringify=({amount,recipient});
+    const messagehash=keccak256(utf8ToBytes(message));
+
+    const signBytes=hexToBytes(signature);
     // Recover public key from signature
     const publicKey = secp256k1.recoverPublicKey(
       Uint8Array.from(Buffer.from(messageHash, "hex")),
