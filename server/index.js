@@ -20,35 +20,41 @@ app.get("/balance/:address", (req, res) => {
 });
 
 app.post("/send", (req, res) => {
-  // get the signature and recovery bit from the client side
-  // recover the public address from the signature
-  const { recipient, amount, signature, recovery, messageHash } = req.body;
-  console.log("Received send request:", req.body);
-
+  const { recipient, amount, signature, recovery } = req.body;
 
   try {
-    const message=JSON.stringify=({amount,recipient});
-    const messagehash=keccak256(utf8ToBytes(message));
+    // 🔥 Recreate message on backend
+    const message = JSON.stringify({ amount, recipient });
+    const messageHash = keccak256(utf8ToBytes(message));
 
-    const signBytes=hexToBytes(signature);
-    // Recover public key from signature
+    const sigBytes = hexToBytes(signature);
+
     const publicKey = secp256k1.recoverPublicKey(
-      Uint8Array.from(Buffer.from(messageHash, "hex")),
-      Uint8Array.from(Buffer.from(signature, "hex")),
+      messageHash,
+      sigBytes,
       recovery
     );
+
+    const isValid = secp256k1.verify(sigBytes, messageHash, publicKey);
+
+    if (!isValid) {
+      return res.status(400).send({ message: "Invalid signature!" });
+    }
+
     const sender = toHex(publicKey);
 
     setInitialBalance(sender);
     setInitialBalance(recipient);
 
     if (balances[sender] < amount) {
-      res.status(400).send({ message: "Not enough funds!" });
-    } else {
-      balances[sender] -= amount;
-      balances[recipient] += amount;
-      res.send({ balance: balances[sender] });
+      return res.status(400).send({ message: "Not enough funds!" });
     }
+
+    balances[sender] -= amount;
+    balances[recipient] += amount;
+
+    res.send({ balance: balances[sender] });
+
   } catch (err) {
     res.status(400).send({ message: "Invalid signature!" });
   }
