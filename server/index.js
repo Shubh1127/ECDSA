@@ -28,7 +28,7 @@ app.post("/send", (req, res) => {
     const messageHash = keccak256(utf8ToBytes(message));
 
     const sigBytes = hexToBytes(signature);
-
+    console.log(sigBytes)
     const publicKey = secp256k1.recoverPublicKey(
       messageHash,
       sigBytes,
