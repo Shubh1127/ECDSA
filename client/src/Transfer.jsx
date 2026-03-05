@@ -4,7 +4,7 @@ import { toHex } from 'ethereum-cryptography/utils';
 import { secp256k1 } from 'ethereum-cryptography/secp256k1';
 import { keccak256 } from 'ethereum-cryptography/keccak';
 import { utf8ToBytes } from 'ethereum-cryptography/utils';
-import {Buffer} from 'buffer';
+import { hexToBytes } from "ethereum-cryptography/utils";
 function Transfer({ address, setBalance ,privateKey}) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipient, setRecipient] = useState("");
@@ -13,36 +13,29 @@ function Transfer({ address, setBalance ,privateKey}) {
 
   async function transfer(evt) {
     evt.preventDefault();
+    console.log(address,privateKey,)
+    console.log(sendAmount,recipient);
+    const message=JSON.stringify({
+      sender: address,
+      recipient,
+      amount: parseInt(sendAmount)
+    })
 
-    // Get privateKey from parent (App)
-    const privKey = privateKey || "";
-    if (!privKey) {
-      alert("Private key required!");
-      return;
-    }
-
-    // Prepare message
-    const message = JSON.stringify({ amount: parseInt(sendAmount), recipient });
-    const messageHash = toHex(keccak256(utf8ToBytes(message)));
-
-    // Sign message
-    const msgBytes = Uint8Array.from(Buffer.from(messageHash, "hex"));
-    const privBytes = Uint8Array.from(Buffer.from(privKey, "hex"));
-    const signatureObj = secp256k1.sign(msgBytes, privBytes);
-    const signature = signatureObj.toCompactHex();
-    const recovery = signatureObj.recovery;
-
+    const messageBytes=utf8ToBytes(message);
+    const hashMessage=keccak256(messageBytes);
+    const signatureObj= secp256k1.sign(hashMessage,hexToBytes(privateKey));
+    const signature=signatureObj.toCompactHex();
+    const recoveryBit=signatureObj.recovery;
     try {
-      const {
-        data: { balance },
-      } = await server.post(`send`, {
-        amount: parseInt(sendAmount),
-        recipient,
-        signature,
-        recovery,
-        messageHash,
-      });
-      setBalance(balance);
+     const req=await server.post(`send`,{
+      sender:address,
+      recipient,
+      amount:parseInt(sendAmount),
+      signature,
+      recoveryBit,
+      messageHash:toHex(hashMessage)
+     })
+      setBalance(req.data.balance);
     } catch (ex) {
       alert(ex.response.data.message);
     }

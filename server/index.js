@@ -3,14 +3,15 @@ const app = express();
 const cors = require("cors");
 const port = 3042;
  const { secp256k1 } = require("ethereum-cryptography/secp256k1");
-  const { toHex, hexToBytes } = require("ethereum-cryptography/utils");
+  const { toHex, hexToBytes,utf8ToBytes } = require("ethereum-cryptography/utils");
+  const { keccak256 } = require("ethereum-cryptography/keccak");
 app.use(cors());
 app.use(express.json());
 
 const balances = {
-  "02569227157f387ab8ea2a33ec7acd95ec6f6fbe94d32246f3c7878c720e4783a4": 100,
-  "028c8f4458f70ce4dcebc1d26e1e7ae256a19353d20af3733a2f74df4284a30e22": 50,
-  "03310a454cf68106da2974093de2f11c40998e621c2551986e2b5b2f30e11fe62d": 75,
+  "021f118ce176e425318aef774ad67fe3ffa6903775eea0205a6a49092ce934b189": 100,
+  "026e5772d219b5c43b6d3e1f843f4503e0154bec4c0d8111545aabe0d64d125028": 50,
+  "023e79bd05c6104724e3efe1d6b8d3eee1d23fa22de0e592aa959a542a1d49e720": 75,
 };
 
 app.get("/balance/:address", (req, res) => {
@@ -20,32 +21,50 @@ app.get("/balance/:address", (req, res) => {
 });
 
 app.post("/send", (req, res) => {
-  const { recipient, amount, signature, recovery } = req.body;
-
+  const { sender,recipient, amount, signature, recoveryBit,messageHash } = req.body;
+  console.log("recipient:",recipient,"amount: ", amount, "signature: ",signature, "recoveryBit: ",recoveryBit,"messageHash: ",messageHash,"sender: ",sender)
   try {
-    // 🔥 Recreate message on backend
-    const message = JSON.stringify({ amount, recipient });
-    const messageHash = keccak256(utf8ToBytes(message));
-
-    const sigBytes = hexToBytes(signature);
-    console.log(sigBytes,messageHash)
-    const publicKey = secp256k1.recoverPublicKey(
-      messageHash,
-      sigBytes,
-      recovery
-    );
-
-    const isValid = secp256k1.verify(sigBytes, messageHash, publicKey);
-
-    if (!isValid) {
-      return res.status(400).send({ message: "Invalid signature!" });
-    }
-
-    const sender = toHex(publicKey);
-
     setInitialBalance(sender);
     setInitialBalance(recipient);
 
+    const message=JSON.stringify({
+      sender,
+      recipient,
+      amount: parseInt(amount)
+    })
+    const messageBytes=utf8ToBytes(message);
+    const reconstructedMessageHash=keccak256(messageBytes);
+
+    if(toHex(reconstructedMessageHash)!==messageHash){
+      return res.status(400).send({ message: "Invalid message hash!" });
+    }
+    const signatureBytes=hexToBytes(signature);
+
+    const recoveredPublicKey=secp256k1.recoverPublicKey(
+      reconstructedMessageHash,
+      signatureBytes,
+      recoveryBit
+    );
+
+    const compressedKey = secp256k1.getPublicKey(recoveredPublicKey, true);
+    const recoveredAddress = toHex(compressedKey);
+    if (recoveredAddress !== sender) {
+  return res.status(400).send({ message: "Invalid !" });
+}
+    const isValid=secp256k1.verify(
+      signatureBytes,
+      reconstructedMessageHash,
+      recoveredPublicKey
+    )
+    if(!isValid){
+      return res.status(400).send({ message: "Invalid signature!" });
+    }
+
+    
+
+    // const sender = toHex(recovererdPublicKey);
+
+    
     if (balances[sender] < amount) {
       return res.status(400).send({ message: "Not enough funds!" });
     }
