@@ -23,7 +23,7 @@ function Transfer({ address, setBalance ,privateKey}) {
 
     const messageBytes=utf8ToBytes(message);
     const hashMessage=keccak256(messageBytes);
-    const signatureObj= secp256k1.sign(hashMessage,hexToBytes(privateKey));
+    const signatureObj= secp256k1.sign(toHex(hashMessage),hexToBytes(privateKey));
     const signature=signatureObj.toCompactHex();
     const recoveryBit=signatureObj.recovery;
     try {
