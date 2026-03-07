@@ -32,6 +32,7 @@ app.post("/send", (req, res) => {
       recipient,
       amount: parseInt(amount)
     })
+    
     const messageBytes=utf8ToBytes(message);
     const reconstructedMessageHash=keccak256(messageBytes);
 
@@ -54,7 +55,7 @@ app.post("/send", (req, res) => {
     const isValid=secp256k1.verify(
       signatureBytes,
       reconstructedMessageHash,
-      recoveredPublicKey
+      privateKey=hexToBytes(sender)
     )
     if(!isValid){
       return res.status(400).send({ message: "Invalid signature!" });
