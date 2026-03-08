@@ -5,5 +5,7 @@ const privateKey=secp256k1.utils.randomPrivateKey();
 
 const publicKey=secp256k1.getPublicKey(privateKey);
 
+console.log("Key Pair Generated Successfully!");
 console.log("Private Key (Hex): ",toHex(privateKey));
+
 console.log("Public Key : ",toHex(publicKey))
