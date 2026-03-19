@@ -11,7 +11,7 @@ app.use(express.json());
 const balances = {
   "021f118ce176e425318aef774ad67fe3ffa6903775eea0205a6a49092ce934b189": 200,
   "026e5772d219b5c43b6d3e1f843f4503e0154bec4c0d8111545aabe0d64d125028": 500,
-  "023e79bd05c6104724e3efe1d6b8d3eee1d23fa22de0e592aa959a542a1d49e720": 750,
+  "023e79bd05c6104724e3efe1d6b8d3eee1d23fa22de0e592aa959a542a1d49e720": 700,
 };
 
 app.get("/balance/:address", (req, res) => {
